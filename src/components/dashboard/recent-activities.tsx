@@ -1,11 +1,7 @@
 "use client";
 
 import { Card, List, Tag, Typography, Empty, Spin } from "antd";
-import {
-  DollarOutlined,
-  UserOutlined,
-  WalletOutlined,
-} from "@ant-design/icons";
+import { DollarOutlined, WalletOutlined } from "@ant-design/icons";
 import type { Deposit, TokenTransaction } from "@/types";
 
 const { Text } = Typography;
@@ -16,7 +12,8 @@ interface RecentDepositsProps {
 }
 
 export function RecentDeposits({ deposits, loading }: RecentDepositsProps) {
-  const formatNumber = (value: number) => {
+  const formatNumber = (value: number | undefined | null) => {
+    if (value == null) return "0";
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
@@ -93,7 +90,8 @@ interface RecentTransactionsProps {
 }
 
 export function RecentTransactions({ transactions, loading }: RecentTransactionsProps) {
-  const formatNumber = (value: number) => {
+  const formatNumber = (value: number | undefined | null) => {
+    if (value == null) return "0";
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
   };
 
@@ -153,11 +151,11 @@ export function RecentTransactions({ transactions, loading }: RecentTransactions
                   <Text
                     style={{
                       fontSize: 12,
-                      color: item.amount >= 0 ? "#52c41a" : "#ff4d4f",
+                      color: (item.amount ?? 0) >= 0 ? "#52c41a" : "#ff4d4f",
                       fontWeight: 500,
                     }}
                   >
-                    {item.amount >= 0 ? "+" : ""}
+                    {(item.amount ?? 0) >= 0 ? "+" : ""}
                     {formatNumber(item.amount)}
                   </Text>
                   <Text type="secondary" style={{ fontSize: 12 }}>
