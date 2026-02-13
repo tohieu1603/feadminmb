@@ -226,7 +226,7 @@ export default function UserDetailPage() {
                 value={user.tokenBalance}
                 formatter={(val) => formatNumber(val as number)}
                 prefix={<WalletOutlined />}
-                valueStyle={{ color: "#1890ff" }}
+                styles={{ content: { color: "#1890ff" } }}
               />
             </Card>
           </Col>
@@ -237,7 +237,7 @@ export default function UserDetailPage() {
                 value={user.totalDeposited || 0}
                 formatter={(val) => formatNumber(val as number)}
                 prefix={<DollarOutlined />}
-                valueStyle={{ color: "#52c41a" }}
+                styles={{ content: { color: "#52c41a" } }}
               />
             </Card>
           </Col>
@@ -248,7 +248,7 @@ export default function UserDetailPage() {
                 value={user.totalSpent || 0}
                 formatter={(val) => formatNumber(val as number)}
                 prefix={<HistoryOutlined />}
-                valueStyle={{ color: "#ff4d4f" }}
+                styles={{ content: { color: "#ff4d4f" } }}
               />
             </Card>
           </Col>
@@ -257,7 +257,7 @@ export default function UserDetailPage() {
               <Statistic
                 title="API Keys"
                 value={user.apiKeysCount || 0}
-                valueStyle={{ color: "#722ed1" }}
+                styles={{ content: { color: "#722ed1" } }}
               />
             </Card>
           </Col>

@@ -204,7 +204,7 @@ export default function DepositsPage() {
                 value={data.summary.totalAmount}
                 formatter={(val) => `${formatNumber(val as number)} VND`}
                 prefix={<DollarOutlined />}
-                valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                styles={{ content: { color: "#52c41a", fontSize: 20 } }}
               />
             </Card>
           </Col>
@@ -215,7 +215,7 @@ export default function DepositsPage() {
                 value={data.summary.totalTokens}
                 formatter={(val) => formatNumber(val as number)}
                 prefix={<WalletOutlined />}
-                valueStyle={{ color: "#1890ff", fontSize: 20 }}
+                styles={{ content: { color: "#1890ff", fontSize: 20 } }}
               />
             </Card>
           </Col>
@@ -225,7 +225,7 @@ export default function DepositsPage() {
                 title="Đơn chờ xử lý"
                 value={data.summary.pendingCount}
                 prefix={<ClockCircleOutlined />}
-                valueStyle={{ color: "#faad14", fontSize: 20 }}
+                styles={{ content: { color: "#faad14", fontSize: 20 } }}
               />
             </Card>
           </Col>
@@ -235,7 +235,7 @@ export default function DepositsPage() {
                 title="Đơn hoàn thành"
                 value={data.summary.completedCount}
                 prefix={<CheckOutlined />}
-                valueStyle={{ color: "#52c41a", fontSize: 20 }}
+                styles={{ content: { color: "#52c41a", fontSize: 20 } }}
               />
             </Card>
           </Col>

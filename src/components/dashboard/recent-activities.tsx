@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, List, Tag, Typography, Empty, Spin } from "antd";
+import { Card, Tag, Typography, Empty, Spin } from "antd";
 import { DollarOutlined, WalletOutlined } from "@ant-design/icons";
 import type { Deposit, TokenTransaction } from "@/types";
 
@@ -54,31 +54,28 @@ export function RecentDeposits({ deposits, loading }: RecentDepositsProps) {
       ) : deposits.length === 0 ? (
         <Empty description="Chưa có đơn nạp" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <List
-          dataSource={deposits}
-          renderItem={(item) => (
-            <List.Item style={{ padding: "8px 0" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text ellipsis style={{ maxWidth: 150 }}>
-                    {item.userEmail || item.userId}
-                  </Text>
-                  <Tag color={getStatusColor(item.status)}>
-                    {getStatusLabel(item.status)}
-                  </Tag>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {formatNumber(item.amount)} VND
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {new Date(item.createdAt).toLocaleDateString("vi-VN")}
-                  </Text>
-                </div>
+        <div>
+          {deposits.map((item) => (
+            <div key={item.id} style={{ padding: "8px 0", borderBottom: "1px solid #f0f0f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <Text ellipsis style={{ maxWidth: 150 }}>
+                  {item.userEmail || item.userId}
+                </Text>
+                <Tag color={getStatusColor(item.status)}>
+                  {getStatusLabel(item.status)}
+                </Tag>
               </div>
-            </List.Item>
-          )}
-        />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {formatNumber(item.amount)} VND
+                </Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                </Text>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </Card>
   );
@@ -136,36 +133,33 @@ export function RecentTransactions({ transactions, loading }: RecentTransactions
       ) : transactions.length === 0 ? (
         <Empty description="Chưa có giao dịch" image={Empty.PRESENTED_IMAGE_SIMPLE} />
       ) : (
-        <List
-          dataSource={transactions}
-          renderItem={(item) => (
-            <List.Item style={{ padding: "8px 0" }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <Text ellipsis style={{ maxWidth: 150 }}>
-                    {item.userEmail || item.userId || "System"}
-                  </Text>
-                  <Tag color={getTypeColor(item.type)}>{getTypeLabel(item.type)}</Tag>
-                </div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                  <Text
-                    style={{
-                      fontSize: 12,
-                      color: (item.amount ?? 0) >= 0 ? "#52c41a" : "#ff4d4f",
-                      fontWeight: 500,
-                    }}
-                  >
-                    {(item.amount ?? 0) >= 0 ? "+" : ""}
-                    {formatNumber(item.amount)}
-                  </Text>
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    {new Date(item.createdAt).toLocaleDateString("vi-VN")}
-                  </Text>
-                </div>
+        <div>
+          {transactions.map((item) => (
+            <div key={item.id} style={{ padding: "8px 0", borderBottom: "1px solid #f0f0f0" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <Text ellipsis style={{ maxWidth: 150 }}>
+                  {item.userEmail || item.userId || "System"}
+                </Text>
+                <Tag color={getTypeColor(item.type)}>{getTypeLabel(item.type)}</Tag>
               </div>
-            </List.Item>
-          )}
-        />
+              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+                <Text
+                  style={{
+                    fontSize: 12,
+                    color: (item.amount ?? 0) >= 0 ? "#52c41a" : "#ff4d4f",
+                    fontWeight: 500,
+                  }}
+                >
+                  {(item.amount ?? 0) >= 0 ? "+" : ""}
+                  {formatNumber(item.amount)}
+                </Text>
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  {new Date(item.createdAt).toLocaleDateString("vi-VN")}
+                </Text>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </Card>
   );

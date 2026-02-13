@@ -10,7 +10,7 @@ import {
   Switch,
   Space,
   Typography,
-  message,
+  App,
   Row,
   Col,
   Tag,
@@ -75,6 +75,7 @@ type ScheduleType = "every" | "cron";
 type TimeUnit = "minutes" | "hours" | "days";
 
 export default function GatewayJobsPage() {
+  const { message } = App.useApp();
   const [form] = Form.useForm();
   const [status, setStatus] = useState<SchedulerStatus | null>(null);
   const [jobs, setJobs] = useState<Cronjob[]>([]);
@@ -264,7 +265,7 @@ export default function GatewayJobsPage() {
       dataIndex: "name",
       key: "name",
       render: (name, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <Text strong>{name}</Text>
           {record.action && (
             <Text type="secondary" style={{ fontSize: 12 }}>
@@ -367,7 +368,7 @@ export default function GatewayJobsPage() {
                 <Statistic
                   title="SCHEDULER"
                   value={status?.running ? "Running" : "Stopped"}
-                  valueStyle={{ color: status?.running ? "#52c41a" : "#ff4d4f" }}
+                  styles={{ content: { color: status?.running ? "#52c41a" : "#ff4d4f" } }}
                 />
               </Col>
               <Col>

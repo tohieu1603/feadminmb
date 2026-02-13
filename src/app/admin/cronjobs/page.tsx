@@ -52,7 +52,7 @@ export default function CronjobsPage() {
       key: "name",
       width: 200,
       render: (name, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <span style={{ fontWeight: 500 }}>{name}</span>
           <span style={{ fontSize: 12, color: "#888" }}>{record.id.slice(0, 8)}...</span>
         </Space>
@@ -63,7 +63,7 @@ export default function CronjobsPage() {
       key: "user",
       width: 180,
       render: (_, record) => (
-        <Space direction="vertical" size={0}>
+        <Space orientation="vertical" size={0}>
           <span>{record.userName || "-"}</span>
           <span style={{ fontSize: 12, color: "#888" }}>{record.userEmail}</span>
         </Space>

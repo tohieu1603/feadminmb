@@ -200,3 +200,146 @@ export interface CronjobFilters {
   limit?: number;
   offset?: number;
 }
+
+// Product types
+export interface ProductSpec {
+  id?: string;
+  productId?: string;
+  value: string;
+  sortOrder?: number;
+}
+
+export interface ProductFullSpec {
+  id?: string;
+  productId?: string;
+  groupName?: string;
+  label: string;
+  value: string;
+  sortOrder?: number;
+}
+
+export interface Product {
+  id: string;
+  slug: string;
+  name: string;
+  price: number;
+  image?: string;
+  category?: string;
+  brand: string;
+  stock: number;
+  sku?: string;
+  description?: string;
+  rating: number;
+  tokenBonus?: number;
+  tags?: string[];
+  specs?: ProductSpec[];
+  fullSpecs?: ProductFullSpec[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface ProductListResponse {
+  products: Product[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export interface ProductFilters {
+  category?: string;
+  search?: string;
+  brand?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  sort?: "price_asc" | "price_desc" | "newest" | "rating" | "name";
+  limit?: number;
+  offset?: number;
+}
+
+// Order types
+export type OrderStatus = "pending" | "processing" | "shipping" | "delivered" | "cancelled";
+
+export interface OrderItem {
+  id: string;
+  orderId?: string;
+  productSlug: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+  createdAt?: string;
+}
+
+export interface OrderPaymentInfo {
+  orderCode: string;
+  amountVnd: number;
+  paymentInfo: {
+    bankName: string;
+    accountNumber: string;
+    accountName: string;
+    transferContent: string;
+    qrCodeUrl: string;
+  };
+  expiresAt: string;
+}
+
+export interface Order {
+  id: string;
+  userId: string;
+  userEmail?: string;
+  userName?: string;
+  orderCode: string;
+  depositOrderId?: string;
+  totalAmount: number;
+  status: OrderStatus;
+  shippingName: string;
+  shippingPhone: string;
+  shippingAddress: string;
+  shippingNote?: string;
+  paymentMethod?: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt?: string;
+  items: OrderItem[];
+  itemCount?: number;
+  payment?: OrderPaymentInfo;
+}
+
+export interface OrderListResponse {
+  orders: Order[];
+  total: number;
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface OrderFilters {
+  status?: OrderStatus;
+  userId?: string;
+  search?: string;
+  limit?: number;
+  offset?: number;
+  page?: number;
+}
+
+// Deposit Pricing types
+export interface DepositPackage {
+  id: string;
+  name: string;
+  tokens: number;
+  priceVnd: number;
+  bonus: number;
+  popular: boolean;
+}
+
+export interface DepositPricingResponse {
+  pricePerMillion: number;
+  currency: string;
+  minimumTokens: number;
+  minimumVnd: number;
+  packages: DepositPackage[];
+}

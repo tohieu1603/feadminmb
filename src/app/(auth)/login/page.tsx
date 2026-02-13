@@ -48,7 +48,7 @@ export default function LoginPage() {
           boxShadow: "0 8px 32px rgba(0,0,0,0.1)",
         }}
       >
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <Space orientation="vertical" size="large" style={{ width: "100%" }}>
           {/* Header */}
           <div style={{ textAlign: "center" }}>
             <Title level={2} style={{ margin: 0, marginBottom: 8 }}>

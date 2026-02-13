@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { App } from "antd";
 import api from "@/lib/api";
 import type {
   User,
@@ -86,6 +86,7 @@ export function useUserTransactions(userId: string, limit = 20, offset = 0) {
 // Update user mutation
 export function useUpdateUser() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<User> }) => {
@@ -106,6 +107,7 @@ export function useUpdateUser() {
 // Delete user mutation
 export function useDeleteUser() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: async (id: string) => {
@@ -125,6 +127,7 @@ export function useDeleteUser() {
 // Topup user tokens
 export function useTopupUser() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: async ({

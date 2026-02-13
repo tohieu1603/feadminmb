@@ -14,6 +14,9 @@ import {
   ClockCircleOutlined,
   RocketOutlined,
   BarChartOutlined,
+  ShoppingOutlined,
+  ShoppingCartOutlined,
+  DollarOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { useAuth } from "@/hooks/use-auth";
@@ -41,6 +44,21 @@ const menuItems: MenuProps["items"] = [
     key: "/admin/deposits",
     icon: <WalletOutlined />,
     label: "Quản lý Nạp tiền",
+  },
+  {
+    key: "/admin/products",
+    icon: <ShoppingOutlined />,
+    label: "Quản lý Sản phẩm",
+  },
+  {
+    key: "/admin/orders",
+    icon: <ShoppingCartOutlined />,
+    label: "Quản lý Đơn hàng",
+  },
+  {
+    key: "/admin/deposit-pricing",
+    icon: <DollarOutlined />,
+    label: "Bảng giá Deposit",
   },
   {
     key: "/admin/cronjobs",
@@ -105,6 +123,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     if (pathname === "/admin") return ["/admin"];
     if (pathname.startsWith("/admin/users")) return ["/admin/users"];
     if (pathname.startsWith("/admin/deposits")) return ["/admin/deposits"];
+    if (pathname.startsWith("/admin/products")) return ["/admin/products"];
+    if (pathname.startsWith("/admin/orders")) return ["/admin/orders"];
+    if (pathname.startsWith("/admin/deposit-pricing")) return ["/admin/deposit-pricing"];
     if (pathname.startsWith("/admin/cronjobs")) return ["/admin/cronjobs"];
     if (pathname.startsWith("/admin/gateway-jobs")) return ["/admin/gateway-jobs"];
     if (pathname.startsWith("/admin/analytics")) return ["/admin/analytics"];

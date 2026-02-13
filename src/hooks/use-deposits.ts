@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { message } from "antd";
+import { App } from "antd";
 import api from "@/lib/api";
 import type { DepositListResponse, DepositFilters } from "@/types";
 
@@ -37,6 +37,7 @@ export function useDeposits(filters: DepositFilters = {}) {
 // Update deposit (complete or cancel)
 export function useUpdateDeposit() {
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   return useMutation({
     mutationFn: async ({

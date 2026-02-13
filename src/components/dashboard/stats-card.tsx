@@ -29,7 +29,7 @@ export function StatsCard({
         value={value}
         prefix={prefix}
         suffix={suffix}
-        valueStyle={{ fontSize: 24, ...valueStyle }}
+        styles={{ content: { fontSize: 24, ...valueStyle } }}
         formatter={formatter as (value: number | string | undefined) => ReactNode}
       />
     </Card>

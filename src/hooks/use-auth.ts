@@ -2,13 +2,14 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { message } from "antd";
+import { App } from "antd";
 import * as authLib from "@/lib/auth";
 import type { LoginRequest, User } from "@/types";
 
 export function useAuth() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   // Get current user query
   const {
