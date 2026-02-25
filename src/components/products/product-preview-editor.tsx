@@ -318,7 +318,7 @@ export function ProductPreviewEditor({
                 </div>
               )}
             </div>
-            <div style={{ marginTop: 8 }}>
+            <div style={{ marginTop: 8, maxWidth: "100%", overflow: "hidden" }}>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 URL ảnh:
               </Text>
@@ -326,7 +326,22 @@ export function ProductPreviewEditor({
                 value={local.image}
                 onChange={(v) => updateField("image", v as string)}
                 placeholder="Nhập URL ảnh"
-                style={{ display: "flex", marginTop: 4 }}
+                render={(v) => (
+                  <Text
+                    style={{
+                      fontSize: 12,
+                      color: "#888",
+                      display: "block",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      maxWidth: 280,
+                    }}
+                  >
+                    {v as string}
+                  </Text>
+                )}
+                style={{ display: "flex", marginTop: 4, maxWidth: "100%" }}
               />
             </div>
           </Col>
