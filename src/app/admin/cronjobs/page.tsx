@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   Card,
@@ -35,6 +35,7 @@ export default function CronjobsPage() {
     limit: 20,
     offset: 0,
   });
+  const searchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data, isLoading } = useCronjobs(filters);
 
@@ -175,11 +176,11 @@ export default function CronjobsPage() {
               prefix={<SearchOutlined />}
               allowClear
               onChange={(e) => {
-                setFilters((prev) => ({
-                  ...prev,
-                  userId: e.target.value || undefined,
-                  offset: 0,
-                }));
+                const value = e.target.value;
+                if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+                searchDebounceRef.current = setTimeout(() => {
+                  setFilters((prev) => ({ ...prev, userId: value || undefined, offset: 0 }));
+                }, 400);
               }}
             />
           </Col>

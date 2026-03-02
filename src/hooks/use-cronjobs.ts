@@ -7,7 +7,9 @@ import type { CronjobListResponse, CronjobFilters, Cronjob, CronjobExecutionList
 // Fetch all cronjobs (admin)
 export function useCronjobs(filters: CronjobFilters) {
   return useQuery<CronjobListResponse>({
-    queryKey: ["cronjobs", "admin", filters],
+    // Normalize key thay vì dùng cả object — tránh cache miss không cần thiết
+    queryKey: ["cronjobs", "admin", filters.userId, filters.enabled, filters.limit, filters.offset],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.userId) params.append("userId", filters.userId);
@@ -25,6 +27,7 @@ export function useCronjobs(filters: CronjobFilters) {
 export function useCronjob(id: string) {
   return useQuery<Cronjob>({
     queryKey: ["cronjob", id],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const response = await api.get<Cronjob>(`/cron/${id}`);
       return response.data;
@@ -37,6 +40,7 @@ export function useCronjob(id: string) {
 export function useCronjobExecutions(cronjobId: string, limit = 20, offset = 0) {
   return useQuery<CronjobExecutionListResponse>({
     queryKey: ["cronjob", cronjobId, "executions", limit, offset],
+    staleTime: 2 * 60 * 1000, // 2 minutes — executions thay đổi thường xuyên hơn
     queryFn: async () => {
       const response = await api.get<CronjobExecutionListResponse>(
         `/cron/${cronjobId}/executions?limit=${limit}&offset=${offset}`

@@ -17,6 +17,7 @@ export const depositKeys = {
 export function useDeposits(filters: DepositFilters = {}) {
   return useQuery({
     queryKey: depositKeys.list(filters),
+    staleTime: 2 * 60 * 1000, // 2 minutes
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.userId) params.append("userId", filters.userId);

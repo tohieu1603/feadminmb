@@ -65,5 +65,6 @@ export function useRecentTransactions(limit = 5) {
       return response.data.transactions || [];
     },
     staleTime: 30 * 1000, // 30 seconds
+    retry: 1, // chỉ retry 1 lần thay vì 3 lần mặc định
   });
 }

@@ -13,6 +13,7 @@ export const depositPricingKeys = {
 export function useDepositPricing() {
   return useQuery({
     queryKey: depositPricingKeys.all,
+    staleTime: 30 * 60 * 1000, // 30 minutes — bảng giá rất ít thay đổi
     queryFn: async () => {
       const response = await api.get<DepositPricingResponse>("/deposits/pricing");
       return response.data;

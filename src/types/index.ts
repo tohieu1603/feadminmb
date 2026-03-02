@@ -61,8 +61,11 @@ export interface DepositListResponse {
   };
 }
 
-// Token types
+// Token types — matches actual API values
 export type TransactionType =
+  | "credit"
+  | "debit"
+  | "adjustment"
   | "deposit"
   | "usage"
   | "admin_credit"
@@ -74,12 +77,14 @@ export interface TokenTransaction {
   id: string;
   userId?: string;
   userEmail?: string;
+  userName?: string;
   type: TransactionType;
   amount: number;
-  balance: number;
+  balanceAfter?: number;
+  balance?: number;
   description?: string;
+  referenceId?: string;
   reference?: string;
-  metadata?: Record<string, unknown>;
   createdAt: string;
 }
 

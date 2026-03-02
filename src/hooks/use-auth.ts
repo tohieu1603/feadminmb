@@ -21,7 +21,7 @@ export function useAuth() {
     queryKey: ["auth", "me"],
     queryFn: authLib.getCurrentUser,
     retry: false,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes — auth thay đổi rất ít
   });
 
   // Login mutation

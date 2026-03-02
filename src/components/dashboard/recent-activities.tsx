@@ -94,6 +94,9 @@ export function RecentTransactions({ transactions, loading }: RecentTransactions
 
   const getTypeColor = (type: string) => {
     const colors: Record<string, string> = {
+      credit: "green",
+      debit: "red",
+      adjustment: "blue",
       deposit: "green",
       usage: "red",
       admin_credit: "blue",
@@ -106,6 +109,9 @@ export function RecentTransactions({ transactions, loading }: RecentTransactions
 
   const getTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
+      credit: "Nạp",
+      debit: "Dùng",
+      adjustment: "Điều chỉnh",
       deposit: "Nạp",
       usage: "Dùng",
       admin_credit: "+Admin",

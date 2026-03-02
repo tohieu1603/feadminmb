@@ -17,6 +17,7 @@ export const productKeys = {
 export function useProducts(filters: ProductFilters = {}) {
   return useQuery({
     queryKey: productKeys.list(filters),
+    staleTime: 2 * 60 * 1000, // 2 minutes
     queryFn: async () => {
       const params = new URLSearchParams();
       if (filters.category) params.append("category", filters.category);
@@ -38,6 +39,7 @@ export function useProducts(filters: ProductFilters = {}) {
 export function useProductCategories() {
   return useQuery({
     queryKey: productKeys.categories(),
+    staleTime: 60 * 60 * 1000, // 1 hour — categories hiếm khi thay đổi
     queryFn: async () => {
       const response = await api.get<string[]>("/products/categories");
       return response.data;

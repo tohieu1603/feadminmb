@@ -14,9 +14,10 @@ export function QueryProvider({ children }: QueryProviderProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
-            refetchOnWindowFocus: false,
-            retry: 1,
+            staleTime: 60 * 1000,       // 1 minute default
+            gcTime: 10 * 60 * 1000,     // 10 minutes in cache
+            refetchOnWindowFocus: false, // không refetch khi focus tab
+            retry: 1,                   // chỉ retry 1 lần khi fail
           },
         },
       })
