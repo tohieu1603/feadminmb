@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Card, Form, Input, Button, Typography, Space } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useAuth } from "@/hooks/use-auth";
-import { isAuthenticated } from "@/lib/auth";
 
 const { Title, Text } = Typography;
 
@@ -21,7 +20,7 @@ export default function LoginPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated() || isAuth) {
+    if (isAuth) {
       router.push("/admin");
     }
   }, [isAuth, router]);

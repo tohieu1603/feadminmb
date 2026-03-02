@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { Spin } from "antd";
 import { AdminLayout } from "@/components/layout/admin-layout";
 import { useAuth } from "@/hooks/use-auth";
-import { isAuthenticated } from "@/lib/auth";
 
 interface AdminLayoutWrapperProps {
   children: React.ReactNode;
@@ -15,13 +14,12 @@ export default function AdminLayoutWrapper({ children }: AdminLayoutWrapperProps
   const router = useRouter();
   const { user, isLoading, isAdmin } = useAuth();
 
+  // Redirect to login if not authenticated or not admin
   useEffect(() => {
-    // Check if not authenticated
-    if (!isAuthenticated()) {
+    if (!isLoading && !user) {
       router.push("/login");
-      return;
     }
-  }, [router]);
+  }, [isLoading, user, router]);
 
   // Redirect non-admin users
   useEffect(() => {

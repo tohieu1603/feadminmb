@@ -14,8 +14,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // For /admin routes, let client-side handle auth check
-  // This is because we store token in localStorage
+  // Check HttpOnly cookie set by the API server
+  const accessToken = request.cookies.get("operis_access");
+
+  if (!accessToken) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
   return NextResponse.next();
 }
 

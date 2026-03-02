@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig, AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3025/api";
 
@@ -20,57 +20,22 @@ const transformKeys = (obj: unknown): unknown => {
   return obj;
 };
 
-// Create axios instance
+// Create axios instance — cookies sent automatically via withCredentials
 export const api = axios.create({
   baseURL: API_URL,
   headers: {
     "Content-Type": "application/json",
   },
   timeout: 30000,
+  withCredentials: true, // Send HttpOnly cookies on every request
 });
-
-// Token storage key
-const TOKEN_KEY = "operis_token";
-
-// Get token from localStorage
-export const getToken = (): string | null => {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(TOKEN_KEY);
-};
-
-// Set token to localStorage
-export const setToken = (token: string): void => {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(TOKEN_KEY, token);
-};
-
-// Remove token from localStorage
-export const removeToken = (): void => {
-  if (typeof window === "undefined") return;
-  localStorage.removeItem(TOKEN_KEY);
-};
-
-// Request interceptor - add auth token
-api.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // Flag to prevent multiple redirects
 let isRedirecting = false;
 
-// Response interceptor - transform snake_case to camelCase + handle errors
+// Response interceptor - transform snake_case to camelCase + handle 401
 api.interceptors.response.use(
   (response: AxiosResponse) => {
-    // Transform response data keys from snake_case to camelCase
     if (response.data) {
       response.data = transformKeys(response.data);
     }
@@ -80,13 +45,9 @@ api.interceptors.response.use(
     // Handle 401 - redirect to login (only once)
     if (error.response?.status === 401 && !isRedirecting) {
       isRedirecting = true;
-      removeToken();
-
       if (typeof window !== "undefined" && !window.location.pathname.includes("/login")) {
         window.location.href = "/login";
       }
-
-      // Reset flag after redirect
       setTimeout(() => {
         isRedirecting = false;
       }, 2000);

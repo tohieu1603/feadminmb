@@ -11,7 +11,7 @@ export function useAuth() {
   const queryClient = useQueryClient();
   const { message } = App.useApp();
 
-  // Get current user query
+  // Get current user query — always enabled, cookie handles auth
   const {
     data: user,
     isLoading,
@@ -20,7 +20,6 @@ export function useAuth() {
   } = useQuery<User>({
     queryKey: ["auth", "me"],
     queryFn: authLib.getCurrentUser,
-    enabled: authLib.isAuthenticated(),
     retry: false,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -31,7 +30,6 @@ export function useAuth() {
     onSuccess: (data) => {
       // Check if user is admin
       if (data.user.role !== "admin") {
-        authLib.removeToken();
         message.error("Bạn không có quyền truy cập trang quản trị");
         return;
       }
