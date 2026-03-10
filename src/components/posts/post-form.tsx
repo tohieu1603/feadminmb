@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Form, Input, Select, Button, Card, Row, Col, Switch, Typography,
   Collapse, Space, Divider, InputNumber, Image as AntImage, Spin, Upload,
@@ -9,13 +9,15 @@ import {
 } from "antd";
 import {
   ArrowLeftOutlined, SaveOutlined, EyeOutlined, PlusOutlined, DeleteOutlined,
-  UploadOutlined, CloseCircleOutlined,
+  UploadOutlined, CloseCircleOutlined, RobotOutlined,
 } from "@ant-design/icons";
 import api from "@/lib/api";
 import { usePost, useCreatePost, useUpdatePost, useCategories, useAuthors, useTags } from "@/hooks/use-posts";
 import { type ContentBlock, blocksToHtml, parseToBlocks } from "@/components/posts/block-editor";
 import dynamic from "next/dynamic";
 
+const PostPreviewModal = dynamic(() => import("@/components/posts/post-preview-modal"), { ssr: false });
+const AiReviewModal = dynamic(() => import("@/components/posts/ai-review-modal"), { ssr: false });
 const BlockEditor = dynamic(() => import("@/components/posts/block-editor"), {
   ssr: false,
   loading: () => <div style={{ height: 200, display: "flex", alignItems: "center", justifyContent: "center", border: "1px solid #d9d9d9", borderRadius: 8 }}><Spin /></div>,
@@ -30,6 +32,7 @@ interface PostFormProps {
 
 export default function PostForm({ postId }: PostFormProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { message } = App.useApp();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
@@ -37,6 +40,8 @@ export default function PostForm({ postId }: PostFormProps) {
   const [coverUploading, setCoverUploading] = useState(false);
   const [contentBlocks, setContentBlocks] = useState<ContentBlock[]>([]);
   const [faqItems, setFaqItems] = useState<{ question: string; answer: string }[]>([]);
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [aiReviewOpen, setAiReviewOpen] = useState(false);
 
   // React Query hooks
   const { data: post, isLoading: loadingPost } = usePost(postId || "");
@@ -75,10 +80,15 @@ export default function PostForm({ postId }: PostFormProps) {
       robots: post.robots,
       news_keywords: post.newsKeywords,
     });
-    if (post.content) setContentBlocks(parseToBlocks(post.content));
+    if (post.content_blocks?.length) {
+      setContentBlocks(post.content_blocks);
+    } else if (post.content) {
+      setContentBlocks(parseToBlocks(post.content));
+    }
     setCoverPreview(post.coverImage || "");
     setFaqItems(post.faq || []);
-  }, [post, form]);
+    if (searchParams.get("preview") === "1") setPreviewOpen(true);
+  }, [post, form, searchParams]);
 
   const handleTitleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const title = e.target.value;
@@ -146,7 +156,8 @@ export default function PostForm({ postId }: PostFormProps) {
           </Title>
         </Space>
         <Space>
-          <Button icon={<EyeOutlined />} disabled>Preview</Button>
+          <Button icon={<RobotOutlined />} onClick={() => setAiReviewOpen(true)} style={{ color: "#722ed1", borderColor: "#722ed1" }}>AI Review</Button>
+          <Button icon={<EyeOutlined />} onClick={() => setPreviewOpen(true)} type="default" size="large">Preview</Button>
           <Button type="primary" icon={<SaveOutlined />} loading={saving} onClick={() => form.submit()} size="large">
             {postId ? "Cập nhật" : "Đăng bài"}
           </Button>
@@ -261,8 +272,40 @@ export default function PostForm({ postId }: PostFormProps) {
               <Form.Item name="author_id" label="Tác giả">
                 <Select allowClear placeholder="Chọn tác giả" showSearch optionFilterProp="label" options={authors.map((a) => ({ value: a.id, label: a.name }))} />
               </Form.Item>
-              <Form.Item name="tags_relation" label="Tags">
-                <Select mode="multiple" allowClear placeholder="Chọn tags" showSearch optionFilterProp="label" options={tags.map((t) => ({ value: t.id, label: t.name }))} />
+              <Form.Item name="tags_relation" label="Tags" extra="Nhập tên tag mới rồi Enter để tạo tự động">
+                <Select
+                  mode="tags"
+                  allowClear
+                  placeholder="Chọn hoặc nhập tag mới..."
+                  showSearch
+                  optionFilterProp="label"
+                  tokenSeparators={[","]}
+                  options={tags.map((t) => ({ value: t.id, label: t.name }))}
+                  onChange={async (values: string[]) => {
+                    // Find values that are not existing tag IDs (user typed new tag names)
+                    const newTagNames = values.filter((v) => !tags.some((t) => t.id === v));
+                    if (newTagNames.length === 0) return;
+
+                    const updatedValues = [...values];
+                    for (const name of newTagNames) {
+                      try {
+                        const slugRes = await api.post("/post-tags/generate-slug", { name });
+                        const slug = slugRes.data.slug || name.toLowerCase().replace(/\s+/g, "-");
+                        const res = await api.post("/post-tags", { name, slug });
+                        const newTag = res.data;
+                        // Replace text value with new tag ID
+                        const idx = updatedValues.indexOf(name);
+                        if (idx !== -1) updatedValues[idx] = newTag.id;
+                        message.success(`Đã tạo tag "${name}"`);
+                      } catch {
+                        message.error(`Tạo tag "${name}" thất bại`);
+                        const idx = updatedValues.indexOf(name);
+                        if (idx !== -1) updatedValues.splice(idx, 1);
+                      }
+                    }
+                    form.setFieldValue("tags_relation", updatedValues);
+                  }}
+                />
               </Form.Item>
             </Card>
 
@@ -361,6 +404,45 @@ export default function PostForm({ postId }: PostFormProps) {
           </Col>
         </Row>
       </Form>
+
+      <PostPreviewModal
+        open={previewOpen}
+        onClose={() => setPreviewOpen(false)}
+        data={{
+          title: form.getFieldValue("title"),
+          subtitle: form.getFieldValue("subtitle"),
+          coverImage: coverPreview,
+          excerpt: form.getFieldValue("excerpt"),
+          contentBlocks,
+          categoryName: categories.find((c) => c.id === form.getFieldValue("category_id"))?.name,
+          authorName: authors.find((a) => a.id === form.getFieldValue("author_id"))?.name,
+          authorAvatar: authors.find((a) => a.id === form.getFieldValue("author_id"))?.avatarUrl,
+          authorJobTitle: authors.find((a) => a.id === form.getFieldValue("author_id"))?.jobTitle,
+          tags: tags.filter((t) => (form.getFieldValue("tags_relation") || []).includes(t.id)).map((t) => t.name),
+          readingTime: form.getFieldValue("reading_time"),
+          publishedAt: post?.publishedAt,
+          faq: faqItems.filter((f) => f.question && f.answer),
+        }}
+      />
+
+      <AiReviewModal
+        open={aiReviewOpen}
+        onClose={() => setAiReviewOpen(false)}
+        data={{
+          title: form.getFieldValue("title"),
+          subtitle: form.getFieldValue("subtitle"),
+          excerpt: form.getFieldValue("excerpt"),
+          contentBlocks,
+          categoryName: categories.find((c) => c.id === form.getFieldValue("category_id"))?.name,
+          tags: tags.filter((t) => (form.getFieldValue("tags_relation") || []).includes(t.id)).map((t) => t.name),
+          metaTitle: form.getFieldValue("meta_title"),
+          metaDescription: form.getFieldValue("meta_description"),
+        }}
+        onApplySuggestion={(field, value) => {
+          form.setFieldValue(field, value);
+          message.success(`Đã áp dụng gợi ý cho ${field}`);
+        }}
+      />
     </div>
   );
 }

@@ -9,6 +9,7 @@ import {
   BoldOutlined, ItalicOutlined, LinkOutlined,
   VerticalAlignTopOutlined, VerticalAlignBottomOutlined,
 } from "@ant-design/icons";
+import { marked } from "marked";
 
 const { TextArea } = Input;
 const { Text } = Typography;
@@ -109,64 +110,124 @@ function parseHtml(html: string): ContentBlock[] {
   return blocks;
 }
 
-function parseMarkdown(text: string): ContentBlock[] {
+/* Vietnamese char classes for detecting lost newlines in pasted text */
+const VN_LOWER = "a-zàáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ";
+const VN_UPPER = "A-ZÀÁẠẢÃÂẦẤẬẨẪĂẰẮẶẲẴÈÉẸẺẼÊỀẾỆỂỄÌÍỊỈĨÒÓỌỎÕÔỒỐỘỔỖƠỜỚỢỞỠÙÚỤỦŨƯỪỨỰỬỮỲÝỴỶỸĐ";
+
+/* Clean pasted text & normalize for marked parser:
+   - Strip clipboard artifacts (bullets, comments, dots)
+   - Recover lost newlines in long lines (Vietnamese camelCase joins, sentence boundaries)
+   - Convert single \n to \n\n so marked creates separate blocks */
+function cleanPastedText(text: string): string {
+  let s = text;
+  s = s.replace(/^[•●]\t?/gm, "");         // macOS bullet prefix
+  s = s.replace(/<!--[\s\S]*?-->/g, "");    // HTML comments
+  s = s.replace(/\s*·\s*·\s*/g, "\n");      // middle dot separators
+  s = s.replace(/\s*·\s*/g, "\n");
+
+  // Escape hashtag lines so marked doesn't parse "#Word" as heading.
+  // Lines like "#Operis #Tag #SEO" → keep as paragraph text
+  s = s.replace(/^(#\w+(\s+#\w+)*)$/gm, (match) => match.replace(/#/g, "\\#"));
+
+  // Recover lost newlines on long lines (>200 chars)
+  const camelJoin = new RegExp(`([${VN_LOWER}])([${VN_UPPER}][${VN_LOWER}])`, "g");
+  const sentenceBoundary = new RegExp(`([.?!])\\s+([${VN_UPPER}])`, "g");
+  s = s.split("\n").map(line => {
+    if (line.length <= 200) return line;
+    let r = line.replace(camelJoin, "$1\n$2");
+    r = r.replace(sentenceBoundary, "$1\n$2");
+    return r;
+  }).join("\n");
+
+  // Ensure double newlines between paragraphs for marked to parse properly.
+  // Don't double newlines inside code fences.
+  const parts: string[] = [];
+  let inCode = false;
+  for (const line of s.split("\n")) {
+    if (line.trim().startsWith("```")) inCode = !inCode;
+    if (inCode) {
+      parts.push(line);
+    } else {
+      parts.push(line, ""); // add blank line after each line → double newline
+    }
+  }
+  s = parts.join("\n");
+
+  // Clean up excessive blank lines (3+ → 2)
+  s = s.replace(/\n{3,}/g, "\n\n");
+
+  return s;
+}
+
+/* Extract inline text from marked tokens, preserving [link](url) and *bold* for blocksToHtml.
+   marked tokens have nested structure: { type: "strong", tokens: [...] } etc. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function tokensToInlineText(tokens: any[]): string {
+  if (!tokens) return "";
+  return tokens.map((t) => {
+    if (t.type === "text") return t.text || "";
+    if (t.type === "strong") return `*${tokensToInlineText(t.tokens)}*`;
+    if (t.type === "em") return `*${tokensToInlineText(t.tokens)}*`;
+    if (t.type === "link") return `[${tokensToInlineText(t.tokens)}](${t.href})`;
+    if (t.type === "codespan") return t.text || "";
+    if (t.type === "br") return "\n";
+    if (t.type === "image") return `![${t.text}](${t.href})`;
+    if (t.tokens) return tokensToInlineText(t.tokens);
+    return t.raw || t.text || "";
+  }).join("");
+}
+
+/* Parse markdown text into ContentBlocks using `marked` lexer.
+   Handles: headings, paragraphs, lists, code, blockquotes, tables, images, HR */
+export function parseMarkdown(text: string): ContentBlock[] {
+  const cleaned = cleanPastedText(text);
+  const tokens = marked.lexer(cleaned);
   const blocks: ContentBlock[] = [];
-  const lines = text.split("\n");
-  let i = 0;
 
-  while (i < lines.length) {
-    const line = lines[i].trim();
-
-    if (!line) { i++; continue; }
-
-    // Code fence
-    if (line.startsWith("```")) {
-      const code: string[] = [];
-      i++;
-      while (i < lines.length && !lines[i].trim().startsWith("```")) { code.push(lines[i]); i++; }
-      blocks.push({ id: uid(), type: "code", content: code.join("\n") });
-      i++; continue;
+  for (const token of tokens) {
+    if (token.type === "heading") {
+      const depth = Math.min(token.depth, 4) as 1 | 2 | 3 | 4;
+      blocks.push({ id: uid(), type: `h${depth}` as BlockType, content: tokensToInlineText(token.tokens || []) });
     }
-
-    // Headings
-    const hm = line.match(/^(#{1,4})\s+(.+)$/);
-    if (hm) { blocks.push({ id: uid(), type: `h${hm[1].length}` as BlockType, content: hm[2] }); i++; continue; }
-
-    // HR
-    if (/^(-{3,}|\*{3,}|_{3,})$/.test(line)) { blocks.push({ id: uid(), type: "hr", content: "" }); i++; continue; }
-
-    // Blockquote
-    if (line.startsWith("> ")) { blocks.push({ id: uid(), type: "quote", content: line.slice(2) }); i++; continue; }
-
-    // Image ![alt](url)
-    const imgM = line.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
-    if (imgM) { blocks.push({ id: uid(), type: "img", content: imgM[2], alt: imgM[1] }); i++; continue; }
-
-    // Unordered list
-    if (/^[-*+]\s/.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && /^[-*+]\s/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^[-*+]\s+/, "")); i++;
+    else if (token.type === "paragraph") {
+      // Check if paragraph is just an image
+      const imgMatch = token.text.match(/^!\[([^\]]*)\]\(([^)]+)\)$/);
+      if (imgMatch) {
+        blocks.push({ id: uid(), type: "img", content: imgMatch[2], alt: imgMatch[1] });
+      } else {
+        blocks.push({ id: uid(), type: "p", content: tokensToInlineText(token.tokens || []) });
       }
-      blocks.push({ id: uid(), type: "ul", content: items.join("\n") }); continue;
     }
-
-    // Ordered list
-    if (/^\d+\.\s/.test(line)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
-        items.push(lines[i].trim().replace(/^\d+\.\s+/, "")); i++;
+    else if (token.type === "list") {
+      const type = token.ordered ? "ol" : "ul";
+      const items = token.items.map((item: { tokens: unknown[] }) => tokensToInlineText(item.tokens).replace(/\n+$/, ""));
+      blocks.push({ id: uid(), type, content: items.join("\n") });
+    }
+    else if (token.type === "code") {
+      blocks.push({ id: uid(), type: "code", content: token.text });
+    }
+    else if (token.type === "blockquote") {
+      const text = tokensToInlineText(token.tokens || []);
+      blocks.push({ id: uid(), type: "quote", content: text });
+    }
+    else if (token.type === "table") {
+      // Convert table to readable text rows
+      const header = token.header.map((h: { tokens: unknown[] }) => tokensToInlineText(h.tokens)).join(" | ");
+      blocks.push({ id: uid(), type: "p", content: header });
+      for (const row of token.rows) {
+        const cells = row.map((c: { tokens: unknown[] }) => tokensToInlineText(c.tokens)).join(" | ");
+        blocks.push({ id: uid(), type: "p", content: cells });
       }
-      blocks.push({ id: uid(), type: "ol", content: items.join("\n") }); continue;
     }
-
-    // Paragraph — collect consecutive non-empty, non-special lines
-    const pLines: string[] = [line];
-    i++;
-    while (i < lines.length && lines[i].trim() && !/^[#>\-*+`\d]/.test(lines[i].trim())) {
-      pLines.push(lines[i].trim()); i++;
+    else if (token.type === "hr") {
+      blocks.push({ id: uid(), type: "hr", content: "" });
     }
-    blocks.push({ id: uid(), type: "p", content: pLines.join(" ") });
+    else if (token.type === "html") {
+      // Skip raw HTML blocks (JSON-LD script tags, etc.)
+      const text = token.text.replace(/<[^>]+>/g, "").trim();
+      if (text) blocks.push({ id: uid(), type: "p", content: text });
+    }
+    // Skip 'space' tokens (blank lines)
   }
 
   return blocks;
@@ -175,12 +236,38 @@ function parseMarkdown(text: string): ContentBlock[] {
 /* ===== Blocks → HTML (for saving) ===== */
 export function blocksToHtml(blocks: ContentBlock[]): string {
   const e = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Convert markdown links [text](url) and auto-link bare URLs
+  const aStyle = 'style="color:#1890ff;text-decoration:underline"';
+  const linkify = (s: string) => {
+    // First: markdown links [text](url)
+    let r = s.replace(/\[([^\]]+)\]\(([^)]+)\)/g, `<a href="$2" target="_blank" rel="noopener" ${aStyle}>$1</a>`);
+    // Then: bare URLs not already inside href="..."
+    r = r.replace(/(?<!href="|">)(https?:\/\/[^\s<"]+)/g, `<a href="$1" target="_blank" rel="noopener" ${aStyle}>$1</a>`);
+    return r;
+  };
   return blocks.map(b => {
     const alignStyle = b.align && b.align !== "left" ? ` style="text-align:${b.align}"` : "";
+    const hashtagStyle = 'style="display:inline-block;background:#f0f0ff;color:#1890ff;padding:2px 8px;border-radius:12px;font-size:0.9em;font-weight:500;margin:0 2px"';
+    const renderHashtags = (s: string) =>
+      s.replace(/(?:^|\s)(\\?#)(\w[\w]*)/g, (m, hash, word) => {
+        const prefix = m.startsWith(" ") ? " " : "";
+        return `${prefix}<span ${hashtagStyle}>#${word}</span>`;
+      });
     const wrapText = (text: string) => {
       let r = e(text);
+      // Convert *text* to bold
+      r = r.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+      r = linkify(r);
+      r = renderHashtags(r);
       if (b.bold) r = `<strong>${r}</strong>`;
       if (b.italic) r = `<em>${r}</em>`;
+      return r;
+    };
+    const wrapListItem = (text: string) => {
+      let r = e(text);
+      r = r.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+      r = linkify(r);
+      r = renderHashtags(r);
       return r;
     };
     switch (b.type) {
@@ -196,8 +283,8 @@ export function blocksToHtml(blocks: ContentBlock[]): string {
       }
       case "quote": return `<blockquote${alignStyle}>${wrapText(b.content)}</blockquote>`;
       case "code": return `<pre><code>${e(b.content)}</code></pre>`;
-      case "ul": return `<ul>${b.content.split("\n").filter(Boolean).map(i => `<li>${e(i)}</li>`).join("")}</ul>`;
-      case "ol": return `<ol>${b.content.split("\n").filter(Boolean).map(i => `<li>${e(i)}</li>`).join("")}</ol>`;
+      case "ul": return `<ul>${b.content.split("\n").filter(Boolean).map(i => `<li>${wrapListItem(i)}</li>`).join("")}</ul>`;
+      case "ol": return `<ol>${b.content.split("\n").filter(Boolean).map(i => `<li>${wrapListItem(i)}</li>`).join("")}</ol>`;
       case "hr": return "<hr />";
       default: return `<p>${e(b.content)}</p>`;
     }
@@ -425,9 +512,19 @@ export default function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     e.preventDefault();
     const html = e.clipboardData.getData("text/html");
     const text = e.clipboardData.getData("text/plain");
-    const src = html || text || "";
-    if (!src.trim()) return;
-    const parsed = parseToBlocks(src);
+    if (!html && !text) return;
+
+    // Always prefer markdown parser for plain text — HTML clipboard often breaks structure
+    // Only fall back to HTML parser when there's no plain text
+    let parsed = text ? parseMarkdown(text) : parseHtml(html);
+
+    // Filter out noise blocks (just "#" chars, empty content, whitespace-only)
+    parsed = parsed.filter(b => {
+      if (b.type === "hr") return true;
+      const c = b.content.trim();
+      return c && !/^#+$/.test(c);
+    });
+
     if (parsed.length) { onChange([...blocks, ...parsed]); setPasteValue(""); }
   }, [blocks, onChange]);
 

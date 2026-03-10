@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   Table, Button, Space, Input, Tag, Typography, Popconfirm, App,
 } from "antd";
-import { PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, ReloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from "@ant-design/icons";
 import { usePosts, useDeletePost } from "@/hooks/use-posts";
 import type { Post, PostFilters } from "@/types";
 import dayjs from "dayjs";
@@ -73,10 +73,18 @@ export default function PostsPage() {
     {
       title: "",
       key: "actions",
-      width: 120,
+      width: 200,
       fixed: "right" as const,
       render: (_: unknown, record: Post) => (
         <Space>
+          <Button
+            type="link"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={() => router.push(`/admin/posts/${record.id}/edit?preview=1`)}
+          >
+            Xem
+          </Button>
           <Button
             type="link"
             size="small"

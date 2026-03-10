@@ -21,6 +21,7 @@ import {
   FolderOutlined,
   TagsOutlined,
   TeamOutlined,
+  ToolOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { useAuth } from "@/hooks/use-auth";
@@ -99,6 +100,11 @@ const menuItems: MenuProps["items"] = [
     icon: <BarChartOutlined />,
     label: "Token Analytics",
   },
+  {
+    key: "/admin/tools/markdown",
+    icon: <ToolOutlined />,
+    label: "Markdown → Text",
+  },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
@@ -157,6 +163,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     if (pathname.startsWith("/admin/cronjobs")) return ["/admin/cronjobs"];
     if (pathname.startsWith("/admin/gateway-jobs")) return ["/admin/gateway-jobs"];
     if (pathname.startsWith("/admin/analytics")) return ["/admin/analytics"];
+    if (pathname.startsWith("/admin/tools")) return ["/admin/tools/markdown"];
     return [pathname];
   };
 
