@@ -346,3 +346,149 @@ export interface DepositPricingResponse {
   minimumVnd: number;
   packages: DepositPackage[];
 }
+
+// Post types
+export type PostStatus = "draft" | "published" | "archived";
+
+export interface Post {
+  id: string;
+  title: string;
+  subtitle?: string;
+  slug: string;
+  content?: string;
+  contentBlocks?: ContentBlock[];
+  excerpt?: string;
+  status: PostStatus;
+  categoryId?: string;
+  authorId?: string;
+  author?: string;
+  tagsRelation?: string[];
+  coverImage?: string;
+  coverWidth?: number;
+  coverHeight?: number;
+  isFeatured?: boolean;
+  isTrending?: boolean;
+  allowComments?: boolean;
+  isEvergreen?: boolean;
+  readingTime?: number;
+  metaTitle?: string;
+  metaDescription?: string;
+  metaKeywords?: string;
+  canonicalUrl?: string;
+  ogTitle?: string;
+  ogDescription?: string;
+  ogImage?: string;
+  robots?: string;
+  newsKeywords?: string;
+  faq?: { question: string; answer: string }[];
+  viewCount?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface PostListResponse {
+  data: Post[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface PostFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: PostStatus;
+  categoryId?: string;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  parentId?: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  viewCount?: number;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+  ogImage?: string | null;
+  path?: string | null;
+  level: number;
+  children?: Category[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface Author {
+  id: string;
+  name: string;
+  slug: string;
+  email?: string | null;
+  avatarUrl?: string | null;
+  bio?: string | null;
+  shortBio?: string | null;
+  jobTitle?: string | null;
+  company?: string | null;
+  location?: string | null;
+  expertise?: string[];
+  website?: string | null;
+  twitter?: string | null;
+  linkedin?: string | null;
+  facebook?: string | null;
+  github?: string | null;
+  youtube?: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AuthorFilters {
+  search?: string;
+  isActive?: boolean;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string | null;
+  color?: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface CategoryFilters {
+  search?: string;
+  parentId?: string;
+  isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+}
+
+export interface TagFilters {
+  search?: string;
+  isActive?: boolean;
+}
+
+export type BlockType = "h1" | "h2" | "h3" | "h4" | "p" | "img" | "quote" | "code" | "ul" | "ol" | "hr";
+
+export interface ContentBlock {
+  id: string;
+  type: BlockType;
+  content: string;
+  alt?: string;
+  link?: string;
+  width?: string;
+  height?: string;
+  align?: "left" | "center" | "right";
+  bold?: boolean;
+  italic?: boolean;
+  className?: string;
+}

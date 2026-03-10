@@ -17,6 +17,10 @@ import {
   ShoppingOutlined,
   ShoppingCartOutlined,
   DollarOutlined,
+  FileTextOutlined,
+  FolderOutlined,
+  TagsOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 import { useAuth } from "@/hooks/use-auth";
@@ -34,6 +38,26 @@ const menuItems: MenuProps["items"] = [
     key: "/admin",
     icon: <DashboardOutlined />,
     label: "Dashboard",
+  },
+  {
+    key: "/admin/posts",
+    icon: <FileTextOutlined />,
+    label: "Quản lý Bài viết",
+  },
+  {
+    key: "/admin/categories",
+    icon: <FolderOutlined />,
+    label: "Danh mục",
+  },
+  {
+    key: "/admin/tags",
+    icon: <TagsOutlined />,
+    label: "Tags",
+  },
+  {
+    key: "/admin/authors",
+    icon: <TeamOutlined />,
+    label: "Tác giả",
   },
   {
     key: "/admin/users",
@@ -121,6 +145,10 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   // Get selected key from pathname
   const getSelectedKey = () => {
     if (pathname === "/admin") return ["/admin"];
+    if (pathname.startsWith("/admin/posts")) return ["/admin/posts"];
+    if (pathname.startsWith("/admin/categories")) return ["/admin/categories"];
+    if (pathname.startsWith("/admin/tags")) return ["/admin/tags"];
+    if (pathname.startsWith("/admin/authors")) return ["/admin/authors"];
     if (pathname.startsWith("/admin/users")) return ["/admin/users"];
     if (pathname.startsWith("/admin/deposits")) return ["/admin/deposits"];
     if (pathname.startsWith("/admin/products")) return ["/admin/products"];
