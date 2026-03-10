@@ -80,8 +80,8 @@ export default function PostForm({ postId }: PostFormProps) {
       robots: post.robots,
       news_keywords: post.newsKeywords,
     });
-    if (post.content_blocks?.length) {
-      setContentBlocks(post.content_blocks);
+    if (post.contentBlocks?.length) {
+      setContentBlocks(post.contentBlocks);
     } else if (post.content) {
       setContentBlocks(parseToBlocks(post.content));
     }
@@ -416,11 +416,11 @@ export default function PostForm({ postId }: PostFormProps) {
           contentBlocks,
           categoryName: categories.find((c) => c.id === form.getFieldValue("category_id"))?.name,
           authorName: authors.find((a) => a.id === form.getFieldValue("author_id"))?.name,
-          authorAvatar: authors.find((a) => a.id === form.getFieldValue("author_id"))?.avatarUrl,
-          authorJobTitle: authors.find((a) => a.id === form.getFieldValue("author_id"))?.jobTitle,
+          authorAvatar: authors.find((a) => a.id === form.getFieldValue("author_id"))?.avatarUrl ?? undefined,
+          authorJobTitle: authors.find((a) => a.id === form.getFieldValue("author_id"))?.jobTitle ?? undefined,
           tags: tags.filter((t) => (form.getFieldValue("tags_relation") || []).includes(t.id)).map((t) => t.name),
           readingTime: form.getFieldValue("reading_time"),
-          publishedAt: post?.publishedAt,
+          publishedAt: post?.createdAt,
           faq: faqItems.filter((f) => f.question && f.answer),
         }}
       />
