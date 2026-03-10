@@ -15,7 +15,7 @@ const { TextArea } = Input;
 const { Text } = Typography;
 
 /* ===== Types ===== */
-export type BlockType = "h1" | "h2" | "h3" | "h4" | "p" | "img" | "quote" | "code" | "ul" | "ol" | "hr";
+export type BlockType = "h1" | "h2" | "h3" | "h4" | "p" | "img" | "quote" | "code" | "ul" | "ol" | "hr" | "table";
 
 export interface ContentBlock {
   id: string;
@@ -48,6 +48,7 @@ const TYPE_CONFIG: Record<BlockType, { label: string; color: string; bg: string 
   ul:    { label: "UL",    color: "#fff", bg: "#52c41a" },
   ol:    { label: "OL",    color: "#fff", bg: "#52c41a" },
   hr:    { label: "HR",    color: "#666", bg: "#e8e8e8" },
+  table: { label: "Table", color: "#fff", bg: "#597ef7" },
 };
 
 const TYPE_OPTIONS = Object.entries(TYPE_CONFIG).map(([k, v]) => ({ value: k, label: v.label }));
@@ -74,34 +75,64 @@ function parseHtml(html: string): ContentBlock[] {
   const doc = new DOMParser().parseFromString(html, "text/html");
   const blocks: ContentBlock[] = [];
 
+  // Convert inline HTML nodes to our inline format (*bold*, [text](url))
+  const inlineText = (node: Node): string => {
+    if (node.nodeType === Node.TEXT_NODE) return node.textContent || "";
+    if (node.nodeType !== Node.ELEMENT_NODE) return "";
+    const el = node as Element;
+    const tag = el.tagName.toLowerCase();
+    const children = Array.from(el.childNodes).map(inlineText).join("");
+    if (tag === "strong" || tag === "b") return `*${children}*`;
+    if (tag === "em" || tag === "i") return `*${children}*`;
+    if (tag === "a") return `[${children}](${el.getAttribute("href") || ""})`;
+    if (tag === "br") return "\n";
+    if (tag === "code") return children;
+    return children;
+  };
+
+  const blockInline = (el: Element) => Array.from(el.childNodes).map(inlineText).join("").trim();
+
   const walk = (el: Element) => {
     const tag = el.tagName.toLowerCase();
-    const txt = () => el.textContent?.trim() || "";
 
-    if (tag === "h1") blocks.push({ id: uid(), type: "h1", content: txt() });
-    else if (tag === "h2") blocks.push({ id: uid(), type: "h2", content: txt() });
-    else if (tag === "h3") blocks.push({ id: uid(), type: "h3", content: txt() });
-    else if (tag.match(/^h[4-6]$/)) blocks.push({ id: uid(), type: "h4", content: txt() });
+    if (tag === "h1") blocks.push({ id: uid(), type: "h1", content: blockInline(el) });
+    else if (tag === "h2") blocks.push({ id: uid(), type: "h2", content: blockInline(el) });
+    else if (tag === "h3") blocks.push({ id: uid(), type: "h3", content: blockInline(el) });
+    else if (tag.match(/^h[4-6]$/)) blocks.push({ id: uid(), type: "h4", content: blockInline(el) });
     else if (tag === "img") {
       blocks.push({ id: uid(), type: "img", content: el.getAttribute("src") || "",
         alt: el.getAttribute("alt") || "", width: el.getAttribute("width") || "", height: el.getAttribute("height") || "",
         link: el.closest("a")?.getAttribute("href") || "" });
     }
-    else if (tag === "blockquote") blocks.push({ id: uid(), type: "quote", content: txt() });
-    else if (tag === "pre") blocks.push({ id: uid(), type: "code", content: txt() });
+    else if (tag === "blockquote") blocks.push({ id: uid(), type: "quote", content: blockInline(el) });
+    else if (tag === "pre") blocks.push({ id: uid(), type: "code", content: el.textContent?.trim() || "" });
     else if (tag === "ul") {
-      const items = Array.from(el.querySelectorAll(":scope > li")).map(l => l.textContent?.trim() || "");
+      const items = Array.from(el.querySelectorAll(":scope > li")).map(l => blockInline(l));
       if (items.length) blocks.push({ id: uid(), type: "ul", content: items.join("\n") });
     }
     else if (tag === "ol") {
-      const items = Array.from(el.querySelectorAll(":scope > li")).map(l => l.textContent?.trim() || "");
+      const items = Array.from(el.querySelectorAll(":scope > li")).map(l => blockInline(l));
       if (items.length) blocks.push({ id: uid(), type: "ol", content: items.join("\n") });
+    }
+    else if (tag === "table") {
+      const trs = Array.from(el.querySelectorAll("tr"));
+      const headerRow = trs[0];
+      const header = headerRow
+        ? Array.from(headerRow.querySelectorAll("th, td")).map(c => blockInline(c))
+        : [];
+      const rows = trs.slice(1).map(row =>
+        Array.from(row.querySelectorAll("td, th")).map(c => blockInline(c))
+      );
+      blocks.push({ id: uid(), type: "table", content: JSON.stringify({ header, rows }) });
     }
     else if (tag === "hr") blocks.push({ id: uid(), type: "hr", content: "" });
     else if (["p", "div", "section", "article", "span", "figure"].includes(tag)) {
       const img = el.querySelector("img");
-      if (img && txt().length < 5) walk(img);
-      else if (txt()) blocks.push({ id: uid(), type: "p", content: txt() });
+      if (img && (el.textContent?.trim() || "").length < 5) walk(img);
+      else {
+        const content = blockInline(el);
+        if (content) blocks.push({ id: uid(), type: "p", content });
+      }
     }
     else Array.from(el.children).forEach(walk);
   };
@@ -140,15 +171,23 @@ function cleanPastedText(text: string): string {
   }).join("\n");
 
   // Ensure double newlines between paragraphs for marked to parse properly.
-  // Don't double newlines inside code fences.
+  // Don't double newlines inside code fences, tables, or list items.
+  const lines = s.split("\n");
   const parts: string[] = [];
   let inCode = false;
-  for (const line of s.split("\n")) {
-    if (line.trim().startsWith("```")) inCode = !inCode;
-    if (inCode) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (trimmed.startsWith("```")) inCode = !inCode;
+    const isTable = trimmed.startsWith("|");
+    const isList = /^(\d+[.)]\s|[-*+]\s)/.test(trimmed);
+    const nextTrimmed = lines[i + 1]?.trim() ?? "";
+    const nextIsTable = nextTrimmed.startsWith("|");
+    const nextIsList = /^(\d+[.)]\s|[-*+]\s)/.test(nextTrimmed);
+    if (inCode || (isTable && nextIsTable) || (isList && nextIsList)) {
       parts.push(line);
     } else {
-      parts.push(line, ""); // add blank line after each line → double newline
+      parts.push(line, "");
     }
   }
   s = parts.join("\n");
@@ -165,7 +204,7 @@ function cleanPastedText(text: string): string {
 function tokensToInlineText(tokens: any[]): string {
   if (!tokens) return "";
   return tokens.map((t) => {
-    if (t.type === "text") return t.text || "";
+    if (t.type === "text") return t.tokens ? tokensToInlineText(t.tokens) : (t.text || "");
     if (t.type === "strong") return `*${tokensToInlineText(t.tokens)}*`;
     if (t.type === "em") return `*${tokensToInlineText(t.tokens)}*`;
     if (t.type === "link") return `[${tokensToInlineText(t.tokens)}](${t.href})`;
@@ -211,13 +250,12 @@ export function parseMarkdown(text: string): ContentBlock[] {
       blocks.push({ id: uid(), type: "quote", content: text });
     }
     else if (token.type === "table") {
-      // Convert table to readable text rows
-      const header = token.header.map((h: { tokens: unknown[] }) => tokensToInlineText(h.tokens)).join(" | ");
-      blocks.push({ id: uid(), type: "p", content: header });
-      for (const row of token.rows) {
-        const cells = row.map((c: { tokens: unknown[] }) => tokensToInlineText(c.tokens)).join(" | ");
-        blocks.push({ id: uid(), type: "p", content: cells });
-      }
+      const headerCells = token.header.map((h: { tokens: unknown[] }) => tokensToInlineText(h.tokens));
+      const rows = token.rows.map((row: { tokens: unknown[] }[]) =>
+        row.map((c: { tokens: unknown[] }) => tokensToInlineText(c.tokens))
+      );
+      // Store as JSON: { header: string[], rows: string[][] }
+      blocks.push({ id: uid(), type: "table", content: JSON.stringify({ header: headerCells, rows }) });
     }
     else if (token.type === "hr") {
       blocks.push({ id: uid(), type: "hr", content: "" });
@@ -253,23 +291,23 @@ export function blocksToHtml(blocks: ContentBlock[]): string {
         const prefix = m.startsWith(" ") ? " " : "";
         return `${prefix}<span ${hashtagStyle}>#${word}</span>`;
       });
-    const wrapText = (text: string) => {
-      let r = e(text);
-      // Convert *text* to bold
+    const inlineFmt = (s: string) => {
+      let r = e(s);
+      // Convert *text* to bold (non-greedy, handle adjacent)
       r = r.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
+      // Convert reference-style links [text][ref] → just show text
+      r = r.replace(/\[([^\]]+)\]\[[^\]]*\]/g, '$1');
       r = linkify(r);
       r = renderHashtags(r);
+      return r;
+    };
+    const wrapText = (text: string) => {
+      let r = inlineFmt(text);
       if (b.bold) r = `<strong>${r}</strong>`;
       if (b.italic) r = `<em>${r}</em>`;
       return r;
     };
-    const wrapListItem = (text: string) => {
-      let r = e(text);
-      r = r.replace(/\*([^*]+)\*/g, '<strong>$1</strong>');
-      r = linkify(r);
-      r = renderHashtags(r);
-      return r;
-    };
+    const wrapListItem = (text: string) => inlineFmt(text);
     switch (b.type) {
       case "h1": case "h2": case "h3": case "h4": return `<${b.type}${alignStyle}>${wrapText(b.content)}</${b.type}>`;
       case "p": return `<p${alignStyle}>${wrapText(b.content)}</p>`;
@@ -285,6 +323,14 @@ export function blocksToHtml(blocks: ContentBlock[]): string {
       case "code": return `<pre><code>${e(b.content)}</code></pre>`;
       case "ul": return `<ul>${b.content.split("\n").filter(Boolean).map(i => `<li>${wrapListItem(i)}</li>`).join("")}</ul>`;
       case "ol": return `<ol>${b.content.split("\n").filter(Boolean).map(i => `<li>${wrapListItem(i)}</li>`).join("")}</ol>`;
+      case "table": {
+        try {
+          const { header, rows } = JSON.parse(b.content) as { header: string[]; rows: string[][] };
+          const thRow = header.map(h => `<th>${wrapListItem(h)}</th>`).join("");
+          const bodyRows = rows.map(r => `<tr>${r.map(c => `<td>${wrapListItem(c)}</td>`).join("")}</tr>`).join("");
+          return `<table><thead><tr>${thRow}</tr></thead><tbody>${bodyRows}</tbody></table>`;
+        } catch { return `<p>${e(b.content)}</p>`; }
+      }
       case "hr": return "<hr />";
       default: return `<p>${e(b.content)}</p>`;
     }
@@ -333,6 +379,40 @@ function BlockItem({ block, index, total, onUpdate, onDelete, onMove, onDuplicat
         autoSize={{ minRows: 2 }} placeholder="Code..."
         style={{ fontFamily: "'Fira Code', monospace", fontSize: 13, background: "#1e1e2e", color: "#cdd6f4", border: "none", borderRadius: 6 }} />
     );
+
+    if (block.type === "table") {
+      let tableData = { header: [""], rows: [[""]] };
+      try { tableData = JSON.parse(block.content); } catch { /* keep default */ }
+      const updateTable = (d: typeof tableData) => onUpdate("content", JSON.stringify(d));
+      return (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+            <thead>
+              <tr>
+                {tableData.header.map((h, ci) => (
+                  <th key={ci} style={{ border: "1px solid #d9d9d9", padding: 4, background: "#f5f5f5" }}>
+                    <Input size="small" value={h} style={{ border: "none", fontWeight: 600, background: "transparent" }}
+                      onChange={e => { const nh = [...tableData.header]; nh[ci] = e.target.value; updateTable({ ...tableData, header: nh }); }} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {tableData.rows.map((row, ri) => (
+                <tr key={ri}>
+                  {row.map((cell, ci) => (
+                    <td key={ci} style={{ border: "1px solid #d9d9d9", padding: 4 }}>
+                      <Input size="small" value={cell} style={{ border: "none", background: "transparent" }}
+                        onChange={e => { const nr = tableData.rows.map(r => [...r]); nr[ri][ci] = e.target.value; updateTable({ ...tableData, rows: nr }); }} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+    }
 
     if (block.type === "ul" || block.type === "ol") return (
       <TextArea value={block.content} onChange={e => onUpdate("content", e.target.value)}
@@ -514,9 +594,10 @@ export default function BlockEditor({ blocks, onChange }: BlockEditorProps) {
     const text = e.clipboardData.getData("text/plain");
     if (!html && !text) return;
 
-    // Always prefer markdown parser for plain text — HTML clipboard often breaks structure
-    // Only fall back to HTML parser when there's no plain text
-    let parsed = text ? parseMarkdown(text) : parseHtml(html);
+    // If HTML contains rich tags (headings, lists, images, etc.), use HTML parser.
+    // Otherwise fall back to markdown/plain text parser.
+    const hasRichHtml = html && /<(h[1-6]|ul|ol|li|img|blockquote|pre|table|figure)\b/i.test(html);
+    let parsed = hasRichHtml ? parseHtml(html) : text ? parseMarkdown(text) : parseHtml(html);
 
     // Filter out noise blocks (just "#" chars, empty content, whitespace-only)
     parsed = parsed.filter(b => {

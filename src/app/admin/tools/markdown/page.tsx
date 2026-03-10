@@ -30,11 +30,22 @@ export default function MarkdownConverterPage() {
     message.success("Đã copy HTML");
   }, [html]);
 
-  const handleCopyText = useCallback(() => {
-    const el = document.createElement("div");
-    el.innerHTML = html;
-    navigator.clipboard.writeText(el.textContent || "");
-    message.success("Đã copy văn bản");
+  const handleCopyText = useCallback(async () => {
+    try {
+      // Copy as rich text so paste preserves h1/h2/p/img structure
+      const htmlBlob = new Blob([html], { type: "text/html" });
+      const el = document.createElement("div");
+      el.innerHTML = html;
+      const textBlob = new Blob([el.textContent || ""], { type: "text/plain" });
+      await navigator.clipboard.write([
+        new ClipboardItem({ "text/html": htmlBlob, "text/plain": textBlob }),
+      ]);
+      message.success("Đã copy (rich text)");
+    } catch {
+      // Fallback for browsers that don't support ClipboardItem
+      navigator.clipboard.writeText(html);
+      message.success("Đã copy HTML");
+    }
   }, [html]);
 
   const handleClear = useCallback(() => {
